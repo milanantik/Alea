@@ -229,12 +229,6 @@
   /* ---------------------------------------------
      Story: Einblenden, Platzhalter, Weiter-Button
      --------------------------------------------- */
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("visible"); io.unobserve(e.target); } });
-  }, { threshold: 0.3 });
-  const observeReveals = (root = document) => root.querySelectorAll(".reveal:not(.visible)").forEach((el) => io.observe(el));
-  observeReveals();
-
   // Solange die Bilder fehlen, erscheint ein Platzhalter
   document.querySelectorAll("img[data-placeholder]").forEach((img) => {
     const swap = () => {
@@ -249,22 +243,117 @@
     if (img.id === "zoom-img") img.classList.add("zoom-target");
   });
 
-  const scrollToEl = (el) => el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
-  document.querySelector("[data-next]").addEventListener("click", (e) => {
-    scrollToEl(e.target.closest(".screen").nextElementSibling);
+  /* ---------------------------------------------
+     Pager: eine Seite pro Bildschirm, Wechsel per Wischen
+     --------------------------------------------- */
+  const track = document.querySelector("main");
+  const hint = document.getElementById("next-hint");
+  const PAGE_MS = reduceMotion ? 0 : 750;
+  let page = 0, busyUntil = 0;
+  if (reduceMotion) track.style.transition = "none";
+
+  const pages = () => [...track.querySelectorAll(".screen:not(.locked)")];
+  const offsetOf = (i) => -pages()[i].offsetTop;
+
+  const goTo = (i) => {
+    const list = pages();
+    page = Math.max(0, Math.min(list.length - 1, i));
+    track.style.transform = `translate3d(0, ${offsetOf(page)}px, 0)`;
+    list[page].querySelectorAll(".reveal").forEach((el) => el.classList.add("visible"));
+    busyUntil = performance.now() + PAGE_MS;
+    hint.classList.toggle("off", page >= list.length - 1);
+  };
+  const step = (dir) => { if (performance.now() >= busyUntil) goTo(page + dir); };
+  const scrollToEl = (el) => goTo(pages().indexOf(el));
+
+  document.querySelector("[data-next]").addEventListener("click", () => step(1));
+  hint.addEventListener("click", () => step(1));
+  window.addEventListener("resize", () => goTo(page));
+
+  // Kann das Element unter dem Finger selbst scrollen (Drehrad, zu lange Seite)?
+  const scrollerFor = (target, dir) => {
+    if (target.closest(".wheel")) return true;
+    const sec = target.closest(".screen");
+    if (!sec || sec.scrollHeight <= sec.clientHeight + 2) return false;
+    return dir > 0 ? sec.scrollTop + sec.clientHeight < sec.scrollHeight - 2 : sec.scrollTop > 2;
+  };
+
+  let touch = null;
+  document.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    touch = { y: t.clientY, x: t.clientX, t: performance.now(), target: e.target, dy: 0, native: null };
+  }, { passive: true });
+
+  document.addEventListener("touchmove", (e) => {
+    if (!touch) return;
+    const t = e.touches[0];
+    touch.dy = t.clientY - touch.y;
+    if (touch.native === null && Math.abs(touch.dy) > 6) {
+      touch.native = scrollerFor(touch.target, touch.dy < 0 ? 1 : -1);
+    }
+    if (touch.native) return;
+    e.preventDefault();
+    // Seite folgt dem Finger ein wenig, am Rand mit mehr Widerstand
+    const atEdge = (touch.dy > 0 && page === 0) || (touch.dy < 0 && page === pages().length - 1);
+    track.classList.add("dragging");
+    track.style.transform = `translate3d(0, ${offsetOf(page) + touch.dy * (atEdge ? 0.12 : 0.35)}px, 0)`;
+  }, { passive: false });
+
+  document.addEventListener("touchend", () => {
+    if (!touch) return;
+    const { dy, t, native } = touch;
+    touch = null;
+    track.classList.remove("dragging");
+    if (native) return;
+    const fast = Math.abs(dy) / (performance.now() - t) > 0.35;
+    if (Math.abs(dy) > 70 || (Math.abs(dy) > 25 && fast)) step(dy < 0 ? 1 : -1);
+    else goTo(page);
+  });
+
+  // Mausrad/Trackpad: pro Geste genau ein Seitenwechsel, Nachrollen wird ignoriert
+  let lastWheel = 0, wheelStepped = false;
+  window.addEventListener("wheel", (e) => {
+    if (e.target.closest(".wheel")) return;
+    const now = performance.now();
+    if (now - lastWheel > 220) wheelStepped = false;
+    lastWheel = now;
+    if (wheelStepped || Math.abs(e.deltaY) < 8 || now < busyUntil) return;
+    if (scrollerFor(e.target, e.deltaY > 0 ? 1 : -1)) return;
+    wheelStepped = true;
+    step(e.deltaY > 0 ? 1 : -1);
+  }, { passive: true });
+
+  window.addEventListener("keydown", (e) => {
+    if (["ArrowDown", "PageDown", " "].includes(e.key)) { e.preventDefault(); step(1); }
+    if (["ArrowUp", "PageUp"].includes(e.key)) { e.preventDefault(); step(-1); }
   });
 
   const unlock = (id) => {
     const el = document.getElementById(id);
     el.classList.remove("locked");
-    observeReveals(el);
+    hint.classList.toggle("off", page >= pages().length - 1);
     return el;
   };
+
+  goTo(0);
 
   /* ---------------------------------------------
      Zoom mit Sprechblase
      --------------------------------------------- */
   const answers = { neinVersuche: 0, sicher: "", zoomKlicks: 0 };
+
+  // Zeitmessung: wann welche Etappe erreicht wurde, und wie lange die Seite im Hintergrund war
+  const times = { start: Date.now() };
+  const mark = (key) => { if (!times[key]) times[key] = Date.now(); };
+  let hiddenMs = 0, hiddenSince = null;
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) hiddenSince = Date.now();
+    else if (hiddenSince) { hiddenMs += Date.now() - hiddenSince; hiddenSince = null; }
+  });
+  const fmt = (ms) => {
+    const s = Math.max(0, Math.round(ms / 1000));
+    return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`;
+  };
 
   // x/y = Punkt im Bild (0–1), der in die Mitte gezoomt wird
   const ZOOM_STEPS = [
@@ -295,6 +384,7 @@
       bubble.hidden = true;
       setTimeout(() => {
         dude.classList.add("show");
+        mark("frage");
         const frage = unlock("frage");
         requestAnimationFrame(centerNein);
         setTimeout(() => scrollToEl(frage), 1800);
@@ -373,6 +463,7 @@
   window.addEventListener("resize", () => { if (!answers1.hidden) jumpNein(); });
 
   const sayYes = () => {
+    mark("ja");
     rainHearts(18);
     answers1.hidden = true;
     btnNein.hidden = true;
@@ -387,6 +478,7 @@
       rainHearts(Number(btn.dataset.hearts));
       if (answers.sicher === "Tripple Ja") bunnyParty();
       answers2.querySelectorAll("button").forEach((b) => (b.disabled = true));
+      mark("kalender");
       const kal = unlock("kalender");
       setTimeout(() => scrollToEl(kal), 1600);
     });
@@ -444,7 +536,7 @@
 
   // Drehrad wie beim iPhone-Wecker
   const makeWheel = (el, values, key) => {
-    const ITEM = 44;
+    const ITEM = 40;
     const pad = () => { const d = document.createElement("div"); d.className = "wheel-pad"; return d; };
     el.appendChild(pad());
     const items = values.map((v, i) => {
@@ -499,6 +591,14 @@
     fd.append("Nein-Versuche", String(answers.neinVersuche));
     fd.append("Zoom-Klicks", String(answers.zoomKlicks));
     fd.append("Gesendet am", new Date().toLocaleString("de-CH"));
+    const end = Date.now();
+    fd.append("Seite geöffnet um", new Date(times.start).toLocaleString("de-CH"));
+    fd.append("Dauer gesamt", fmt(end - times.start));
+    fd.append("davon im Hintergrund (App gewechselt)", fmt(hiddenMs));
+    fd.append("Dauer Story bis Frage", fmt(times.frage - times.start));
+    fd.append("Dauer Frage bis Ja", fmt(times.ja - times.frage));
+    fd.append("Dauer Sicher? bis Kalender", fmt(times.kalender - times.ja));
+    fd.append("Dauer im Kalender", fmt(end - times.kalender));
 
     try {
       const res = await fetch("https://api.web3forms.com/submit", {
