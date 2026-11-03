@@ -559,9 +559,9 @@
      Kalender
      --------------------------------------------- */
   const YEAR = 2026, MONTH = 10; // November (0-basiert)
-  const FIRST_DAY = 4, LAST_DAY = 16; // morgen bis Montag KW46
-  const GRID_START = 2, GRID_END = 22; // Mo 2.11. bis So 22.11.
-  const BUSY = [5, 7, 9, 11, 13, 14];
+  const FIRST_DAY = 4, LAST_DAY = 15; // morgen bis Sonntag nächste Woche
+  const GRID_START = 2, GRID_END = 15; // Mo 2.11. bis So 15.11.
+  const BUSY = [5, 7, 11, 13, 14];
   const HOURS = Array.from({ length: 16 }, (_, i) => String(i + 8).padStart(2, "0")); // 08–23
   const MINUTES = ["00", "15", "30", "45"];
   const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
