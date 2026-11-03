@@ -278,8 +278,9 @@ h2.script { font-size: clamp(44px, 13vw, 84px); }
   max-width: 420px;
   min-height: 120px;
 }
-.answers-sure { flex-direction: column; }
-.answers-sure .btn { width: 80%; }
+.answers-sure { flex-direction: column; flex-wrap: nowrap; flex-shrink: 0; gap: 12px; }
+.answers-sure .btn { width: 80%; margin: 0; padding: 12px 24px; }
+.answers-sure .story { margin: 0; }
 /* Spielfläche: Nein hüpft nur hier drin herum, nichts anderes verschiebt sich */
 .playground {
   position: relative;

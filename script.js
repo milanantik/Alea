@@ -539,7 +539,7 @@
     rainHearts(18);
     answers1.hidden = true;
     btnNein.hidden = true;
-    noMsg.textContent = "";
+    noMsg.hidden = true;
     answers2.hidden = false;
   };
   btnJa.addEventListener("click", sayYes);
