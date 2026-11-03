@@ -306,51 +306,38 @@
     "Der Hase ist jetzt traurig 🐰💔",
     "Error 404: „Nein“ nicht gefunden.",
     "Ich kann das den ganzen Tag machen 😌",
-    "Okay, der Button hat jetzt auch keine Lust mehr.",
   ];
-  const FLEE_FROM = 3, GIVE_UP_AT = 7;
+  const JA_AFTER = 3; // so oft muss sie Nein jagen, bis Ja auftaucht
 
-  const fleeNein = () => {
-    const box = answers1.getBoundingClientRect();
+  // Nein springt bei jedem Tippen irgendwo anders auf den Bildschirm
+  const frageSection = document.getElementById("frage");
+  const jumpNein = () => {
+    const sec = frageSection.getBoundingClientRect();
     const b = btnNein.getBoundingClientRect();
+    const pad = 16;
+    // sichtbarer Bereich der Frage-Seite, relativ zur Seite selbst
+    const top = Math.max(0, -sec.top) + pad;
+    const bottom = Math.min(sec.height, window.innerHeight - sec.top) - b.height - pad;
     btnNein.classList.add("flee");
-    btnNein.style.left = Math.random() * Math.max(0, box.width - b.width) + "px";
-    btnNein.style.top = Math.random() * Math.max(0, box.height - b.height) + "px";
+    btnNein.style.left = pad + Math.random() * Math.max(0, sec.width - b.width - pad * 2) + "px";
+    btnNein.style.top = top + Math.random() * Math.max(0, bottom - top) + "px";
   };
 
-  const sayNo = () => {
+  btnNein.addEventListener("click", () => {
     answers.neinVersuche++;
     const n = answers.neinVersuche;
     noMsg.textContent = NO_TEXT[Math.min(n - 1, NO_TEXT.length - 1)];
-    btnJa.style.transform = `scale(${Math.min(1 + n * 0.18, 2)})`;
-    btnNein.style.transform = `scale(${Math.max(1 - n * 0.1, 0.45)})`;
-    if (n >= GIVE_UP_AT) {
-      btnNein.textContent = "Ja 🙈";
-      btnNein.classList.remove("btn-ghost");
-      btnNein.dataset.convert = "1";
-      noMsg.textContent = "Siehst du, sogar der Button sagt Ja.";
-    } else if (n >= FLEE_FROM) {
-      fleeNein();
+    jumpNein();
+    if (n >= JA_AFTER && btnJa.hidden) {
+      btnJa.hidden = false;
+      noMsg.textContent = "Vielleicht passt dieser hier besser? 👀";
     }
-  };
-
-  // Ab dem dritten Nein weicht der Button dem Finger aus
-  let fledAt = 0;
-  btnNein.addEventListener("pointerdown", (e) => {
-    if (btnNein.dataset.convert || answers.neinVersuche < FLEE_FROM) return;
-    e.preventDefault();
-    fledAt = performance.now();
-    sayNo();
-  });
-  btnNein.addEventListener("click", () => {
-    if (btnNein.dataset.convert) return sayYes();
-    if (performance.now() - fledAt < 600) return;
-    sayNo();
   });
 
   const sayYes = () => {
     rainHearts(18);
     answers1.hidden = true;
+    btnNein.hidden = true;
     noMsg.textContent = "";
     answers2.hidden = false;
   };

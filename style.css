@@ -191,8 +191,11 @@ h2.script { font-size: clamp(44px, 13vw, 84px); }
 }
 .answers-sure { flex-direction: column; }
 .answers-sure .btn { width: 80%; }
-#btn-ja { transition: transform .3s ease; }
-#btn-nein.flee { position: absolute; transition: left .25s ease, top .25s ease, transform .3s ease; }
+#frage { position: relative; }
+#btn-ja { animation: pop .6s cubic-bezier(.3, 1.6, .5, 1); }
+#btn-ja[hidden] { display: none; }
+#btn-nein.flee { position: absolute; z-index: 2; transition: left .3s cubic-bezier(.3, 1.4, .5, 1), top .3s cubic-bezier(.3, 1.4, .5, 1); }
+@keyframes pop { from { transform: scale(0); } }
 .no-msg { min-height: 1.5em; margin: 0; color: var(--accent); font-weight: 700; }
 
 /* Kalender */
