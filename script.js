@@ -296,6 +296,7 @@
       setTimeout(() => {
         dude.classList.add("show");
         const frage = unlock("frage");
+        requestAnimationFrame(centerNein);
         setTimeout(() => scrollToEl(frage), 1800);
       }, 700);
     }
@@ -319,30 +320,57 @@
   ];
   const JA_AFTER = 3; // so oft muss sie Nein jagen, bis Ja auftaucht
 
-  // Nein springt bei jedem Tippen irgendwo anders auf den Bildschirm
-  const frageSection = document.getElementById("frage");
-  const jumpNein = () => {
-    const sec = frageSection.getBoundingClientRect();
-    const b = btnNein.getBoundingClientRect();
-    const pad = 16;
-    // sichtbarer Bereich der Frage-Seite, relativ zur Seite selbst
-    const top = Math.max(0, -sec.top) + pad;
-    const bottom = Math.min(sec.height, window.innerHeight - sec.top) - b.height - pad;
-    btnNein.classList.add("flee");
-    btnNein.style.left = pad + Math.random() * Math.max(0, sec.width - b.width - pad * 2) + "px";
-    btnNein.style.top = top + Math.random() * Math.max(0, bottom - top) + "px";
+  // Nein hüpft innerhalb der Spielfläche herum, ohne Ja zu verdecken
+  const nein = { x: 0, y: 0, scale: 1 };
+  const placeNein = () => {
+    btnNein.style.transform = `translate(${nein.x}px, ${nein.y}px) scale(${nein.scale})`;
+  };
+  const centerNein = () => {
+    nein.x = (answers1.clientWidth - btnNein.offsetWidth) / 2;
+    nein.y = (answers1.clientHeight - btnNein.offsetHeight) / 2;
+    placeNein();
   };
 
-  btnNein.addEventListener("click", () => {
+  const jumpNein = () => {
+    const maxX = answers1.clientWidth - btnNein.offsetWidth;
+    const maxY = answers1.clientHeight - btnNein.offsetHeight;
+    const ja = btnJa.hidden ? null : {
+      x: btnJa.offsetLeft - btnJa.offsetWidth / 2 - btnNein.offsetWidth - 12,
+      y: btnJa.offsetTop - btnJa.offsetHeight / 2 - btnNein.offsetHeight - 12,
+      w: btnJa.offsetWidth + btnNein.offsetWidth + 24,
+      h: btnJa.offsetHeight + btnNein.offsetHeight + 24,
+    };
+    let x, y, tries = 0;
+    do {
+      x = Math.random() * maxX;
+      y = Math.random() * maxY;
+      tries++;
+    } while (tries < 40 && (
+      Math.hypot(x - nein.x, y - nein.y) < 110 ||
+      (ja && x > ja.x && x < ja.x + ja.w && y > ja.y && y < ja.y + ja.h)
+    ));
+    nein.x = x; nein.y = y;
+    placeNein();
+  };
+
+  const sayNo = () => {
     answers.neinVersuche++;
     const n = answers.neinVersuche;
+    navigator.vibrate?.(15);
     noMsg.textContent = NO_TEXT[Math.min(n - 1, NO_TEXT.length - 1)];
-    jumpNein();
+    noMsg.classList.remove("bump"); void noMsg.offsetWidth; noMsg.classList.add("bump");
     if (n >= JA_AFTER && btnJa.hidden) {
       btnJa.hidden = false;
       noMsg.textContent = "Vielleicht passt dieser hier besser? 👀";
     }
-  });
+    if (n > JA_AFTER) nein.scale = Math.max(0.55, 1 - (n - JA_AFTER) * 0.1);
+    jumpNein();
+  };
+
+  // pointerdown statt click: reagiert sofort, ohne Verzögerung beim Tippen
+  btnNein.addEventListener("pointerdown", (e) => { e.preventDefault(); sayNo(); });
+  btnNein.addEventListener("click", (e) => { if (e.detail === 0) sayNo(); }); // Tastatur
+  window.addEventListener("resize", () => { if (!answers1.hidden) jumpNein(); });
 
   const sayYes = () => {
     rainHearts(18);

@@ -177,8 +177,58 @@ h2.script { font-size: clamp(44px, 13vw, 84px); }
   25% { transform: translateX(-50%) rotate(-3deg) scale(1.05); }
   75% { transform: translateX(-50%) rotate(3deg) scale(1.05); }
 }
-.dude { opacity: 0; transform: scale(.3); transition: opacity .5s ease, transform .6s cubic-bezier(.3, 1.6, .5, 1); }
-.dude.show { opacity: 1; transform: none; }
+/* Comic-Sprechblase am Schluss */
+.dude {
+  position: absolute;
+  left: 50%;
+  top: 7%;
+  z-index: 3;
+  width: max-content;
+  max-width: 90%;
+  padding: 14px 20px;
+  background: #fff;
+  color: #111;
+  border: 4px solid #111;
+  border-radius: 28px;
+  font-family: "Arial Black", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 900;
+  font-size: clamp(24px, 7.5vw, 34px);
+  line-height: 1.05;
+  letter-spacing: -0.5px;
+  text-align: center;
+  box-shadow: 6px 6px 0 #111;
+  opacity: 0;
+  transform: translateX(-50%) scale(.2) rotate(-8deg);
+  pointer-events: none;
+}
+.dude::after {
+  content: "";
+  position: absolute;
+  left: 58%;
+  bottom: -26px;
+  border: 14px solid transparent;
+  border-top: 22px solid #111;
+  border-bottom: 0;
+}
+.dude::before {
+  content: "";
+  position: absolute;
+  left: calc(58% + 5px);
+  bottom: -17px;
+  z-index: 1;
+  border: 9px solid transparent;
+  border-top: 15px solid #fff;
+  border-bottom: 0;
+}
+.dude.show { animation: dude-pop .7s cubic-bezier(.34, 1.56, .64, 1) forwards, dude-shake .5s ease .7s 2; }
+@keyframes dude-pop {
+  to { opacity: 1; transform: translateX(-50%) scale(1) rotate(-3deg); }
+}
+@keyframes dude-shake {
+  0%, 100% { opacity: 1; transform: translateX(-50%) scale(1) rotate(-3deg); }
+  25% { opacity: 1; transform: translateX(calc(-50% - 6px)) scale(1.04) rotate(-6deg); }
+  75% { opacity: 1; transform: translateX(calc(-50% + 6px)) scale(1.04) rotate(0deg); }
+}
 
 /* Antworten */
 .answers {
@@ -194,12 +244,37 @@ h2.script { font-size: clamp(44px, 13vw, 84px); }
 }
 .answers-sure { flex-direction: column; }
 .answers-sure .btn { width: 80%; }
-#frage { position: relative; }
-#btn-ja { animation: pop .6s cubic-bezier(.3, 1.6, .5, 1); }
-#btn-ja[hidden] { display: none; }
-#btn-nein.flee { position: absolute; z-index: 2; transition: left .3s cubic-bezier(.3, 1.4, .5, 1), top .3s cubic-bezier(.3, 1.4, .5, 1); }
-@keyframes pop { from { transform: scale(0); } }
-.no-msg { min-height: 1.5em; margin: 0; color: var(--accent); font-weight: 700; }
+/* Spielfläche: Nein hüpft nur hier drin herum, nichts anderes verschiebt sich */
+.playground {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  height: 260px;
+}
+.playground .btn { position: absolute; left: 0; top: 0; margin: 0; }
+#btn-nein {
+  transition: transform .45s cubic-bezier(.34, 1.56, .64, 1), opacity .3s ease;
+  will-change: transform;
+}
+#btn-ja {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  animation: pop .6s cubic-bezier(.34, 1.56, .64, 1);
+}
+.btn-big { font-size: 26px; padding: 18px 48px; }
+@keyframes pop { from { transform: translate(-50%, -50%) scale(0); } }
+.no-msg {
+  min-height: 3em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  font-weight: 700;
+}
+.no-msg.bump { animation: bump .35s ease; }
+@keyframes bump { 40% { transform: scale(1.08); } }
 
 /* Kalender */
 .card {

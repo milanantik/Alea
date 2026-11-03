@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <canvas id="bg" aria-hidden="true"></canvas>
@@ -54,8 +54,8 @@
       <div class="zoom-frame reveal delay" id="zoom-frame">
         <img id="zoom-img" src="bilder/3.jpg" alt="Spass, die Realität" data-placeholder="Bild 3 · Spass">
         <button class="bubble" id="bubble">Klick drauf 👆</button>
+        <div class="dude" id="dude">DU HURENSOHN!!!!</div>
       </div>
-      <h2 class="script dude" id="dude">Du Hurensohn</h2>
     </section>
 
     <!-- 4. Die Frage -->
@@ -65,11 +65,11 @@
       <p class="story reveal delay2">Unser Kalender macht es uns nicht einfach. Von dem her …</p>
       <h2 class="script question reveal delay3">Willst du wieder deine Zeit mit mir teilen?</h2>
 
-      <div class="answers" id="answers-1">
-        <button class="btn" id="btn-ja" hidden>Ja!!!</button>
+      <p class="no-msg" id="no-msg" aria-live="polite"></p>
+      <div class="playground" id="answers-1">
+        <button class="btn btn-big" id="btn-ja" hidden>Ja!!!</button>
         <button class="btn btn-ghost" id="btn-nein">Nein</button>
       </div>
-      <p class="no-msg" id="no-msg" aria-live="polite"></p>
 
       <div class="answers answers-sure" id="answers-2" hidden>
         <p class="story">Sicher? 🤨</p>
@@ -114,6 +114,6 @@
     <input type="checkbox" name="botcheck" style="display:none">
   </form>
 
-  <script src="script.js?v=6"></script>
+  <script src="script.js?v=7"></script>
 </body>
 </html>
