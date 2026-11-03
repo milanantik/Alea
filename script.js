@@ -266,17 +266,27 @@
      --------------------------------------------- */
   const answers = { neinVersuche: 0, sicher: "", zoomKlicks: 0 };
 
-  const ZOOM_STEPS = [1.8, 3, 4.6];
+  // x/y = Punkt im Bild (0–1), der in die Mitte gezoomt wird
+  const ZOOM_STEPS = [
+    { s: 1.8, x: 0.29, y: 0.29 }, // Hase
+    { s: 3, x: 0.29, y: 0.28 },   // Hase, näher
+    { s: 6, x: 0.64, y: 0.39 },   // ihr Gesicht
+  ];
   const BUBBLE_TEXT = ["Nochmals 👆", "Nochmals!! 👆"];
   const zoomFrame = document.getElementById("zoom-frame");
   const bubble = document.getElementById("bubble");
   const dude = document.getElementById("dude");
   let zoomStep = 0;
 
+  const zoomTo = ({ s, x, y }) => {
+    const clamp = (v) => Math.min(0, Math.max(100 - 100 * s, v));
+    const tx = clamp(50 - s * x * 100), ty = clamp(50 - s * y * 100);
+    document.getElementById("zoom-img").style.transform = `translate(${tx}%, ${ty}%) scale(${s})`;
+  };
+
   zoomFrame.addEventListener("click", () => {
     if (zoomStep >= ZOOM_STEPS.length) return;
-    const target = document.getElementById("zoom-img");
-    target.style.transform = `scale(${ZOOM_STEPS[zoomStep]})`;
+    zoomTo(ZOOM_STEPS[zoomStep]);
     zoomStep++;
     answers.zoomKlicks = zoomStep;
     if (zoomStep < ZOOM_STEPS.length) {
@@ -361,16 +371,17 @@
   const FIRST_DAY = 4, LAST_DAY = 15; // morgen bis Sonntag nächste Woche
   const GRID_START = 2, GRID_END = 15; // Mo 2.11. bis So 15.11.
   const BUSY = [5, 7, 9, 11, 13, 14];
-  const TIMES = ["10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "Du entscheidest"];
+  const HOURS = Array.from({ length: 16 }, (_, i) => String(i + 8).padStart(2, "0")); // 08–23
+  const MINUTES = ["00", "15", "30", "45"];
   const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
   const DAY_NAMES = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
 
   const cal = document.getElementById("cal");
   const timesBox = document.getElementById("times");
-  const chips = document.getElementById("time-chips");
   const sendBtn = document.getElementById("send");
   const status = document.getElementById("status");
-  let pickedDay = null, pickedTime = null;
+  let pickedDay = null;
+  const picked = { h: "18", m: "00" };
 
   WEEKDAYS.forEach((d) => {
     const el = document.createElement("div");
@@ -394,28 +405,50 @@
         cal.querySelectorAll(".day.selected").forEach((x) => x.classList.remove("selected"));
         btn.classList.add("selected");
         pickedDay = d;
+        const firstTime = timesBox.hidden;
         timesBox.hidden = false;
-        updateSend();
+        if (firstTime) wheels.forEach((w) => w.jumpTo());
+        sendBtn.disabled = false;
       });
     }
     cal.appendChild(btn);
   }
 
-  TIMES.forEach((t) => {
-    const c = document.createElement("button");
-    c.type = "button";
-    c.className = "chip";
-    c.textContent = t;
-    c.addEventListener("click", () => {
-      chips.querySelectorAll(".selected").forEach((x) => x.classList.remove("selected"));
-      c.classList.add("selected");
-      pickedTime = t;
-      updateSend();
+  // Drehrad wie beim iPhone-Wecker
+  const makeWheel = (el, values, key) => {
+    const ITEM = 44;
+    const pad = () => { const d = document.createElement("div"); d.className = "wheel-pad"; return d; };
+    el.appendChild(pad());
+    const items = values.map((v, i) => {
+      const it = document.createElement("div");
+      it.className = "wheel-item";
+      it.textContent = v;
+      it.addEventListener("click", () => el.scrollTo({ top: i * ITEM, behavior: "smooth" }));
+      el.appendChild(it);
+      return it;
     });
-    chips.appendChild(c);
-  });
+    el.appendChild(pad());
 
-  const updateSend = () => { sendBtn.disabled = !(pickedDay && pickedTime); };
+    const update = () => {
+      const pos = el.scrollTop / ITEM;
+      const idx = Math.max(0, Math.min(values.length - 1, Math.round(pos)));
+      items.forEach((it, i) => {
+        const d = i - pos;
+        it.style.transform = `rotateX(${Math.max(-70, Math.min(70, d * -22))}deg)`;
+        it.style.opacity = String(Math.max(0.15, 1 - Math.abs(d) * 0.3));
+        it.classList.toggle("active", i === idx);
+      });
+      picked[key] = values[idx];
+    };
+    el.addEventListener("scroll", () => requestAnimationFrame(update), { passive: true });
+
+    return { jumpTo: () => { el.scrollTop = values.indexOf(picked[key]) * ITEM; update(); } };
+  };
+  const wheels = [
+    makeWheel(document.getElementById("wheel-h"), HOURS, "h"),
+    makeWheel(document.getElementById("wheel-m"), MINUTES, "m"),
+  ];
+  const pickedTime = () => `${picked.h}:${picked.m}`;
 
   const dayLabel = (d) => {
     const date = new Date(YEAR, MONTH, d);
@@ -433,7 +466,7 @@
     fd.append("subject", `🐰 Alea hat geantwortet: ${dayLabel(pickedDay)}`);
     fd.append("from_name", "Alea-Seite");
     fd.append("Tag", dayLabel(pickedDay));
-    fd.append("Uhrzeit", pickedTime);
+    fd.append("Uhrzeit", pickedTime());
     fd.append("Wie sicher", answers.sicher);
     fd.append("Nein-Versuche", String(answers.neinVersuche));
     fd.append("Zoom-Klicks", String(answers.zoomKlicks));
@@ -447,8 +480,7 @@
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
-      const time = pickedTime === "Du entscheidest" ? "" : ` um ${pickedTime}`;
-      document.getElementById("danke-text").textContent = `Bis am ${dayLabel(pickedDay)}${time} ❤️`;
+      document.getElementById("danke-text").textContent = `Bis am ${dayLabel(pickedDay)} um ${pickedTime()} ❤️`;
       const danke = unlock("danke");
       scrollToEl(danke);
       rainHearts(80);

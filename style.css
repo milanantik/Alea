@@ -115,9 +115,11 @@ h2.script { font-size: clamp(44px, 13vw, 84px); }
 .btn-wide { width: 100%; margin-top: 20px; }
 
 /* Bilder */
+.photo { aspect-ratio: auto; }
+.photo img { height: auto; }
+.zoom-frame { aspect-ratio: 3 / 4; }
 .photo, .zoom-frame {
   width: min(100%, 420px);
-  aspect-ratio: 4 / 5;
   border-radius: 20px;
   overflow: hidden;
   border: 1px solid var(--card-border);
@@ -141,7 +143,7 @@ h2.script { font-size: clamp(44px, 13vw, 84px); }
 
 /* Zoom */
 .zoom-frame { position: relative; cursor: pointer; }
-.zoom-target { transition: transform .9s cubic-bezier(.2, .8, .2, 1); transform-origin: 50% 35%; }
+.zoom-target { transition: transform 1s cubic-bezier(.2, .8, .2, 1); transform-origin: 0 0; }
 .bubble {
   position: absolute;
   left: 50%;
@@ -234,20 +236,57 @@ h2.script { font-size: clamp(44px, 13vw, 84px); }
 
 .times { margin-top: 18px; }
 .label { margin: 0 0 10px; font-weight: 700; }
-.time-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.chip {
-  font: inherit;
-  font-weight: 700;
-  font-size: 16px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--card-border);
-  background: rgba(255,255,255,.1);
-  color: var(--text);
-  cursor: pointer;
-  touch-action: manipulation;
+/* Zeitauswahl im Wecker-Stil */
+.wheel-picker {
+  --item: 44px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  height: calc(var(--item) * 5);
+  margin: 0 auto;
+  max-width: 240px;
+  perspective: 600px;
 }
-.chip.selected { background: var(--accent); color: #2a0b3d; border-color: var(--accent); }
+.wheel {
+  height: 100%;
+  width: 84px;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  -webkit-mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent);
+  mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent);
+  position: relative;
+  z-index: 1;
+}
+.wheel::-webkit-scrollbar { display: none; }
+.wheel-pad { height: calc(var(--item) * 2); }
+.wheel-item {
+  height: var(--item);
+  line-height: var(--item);
+  font-size: 26px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  scroll-snap-align: center;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  transition: color .15s ease;
+}
+.wheel-item.active { color: var(--text); }
+.wheel-colon { font-size: 26px; font-weight: 700; z-index: 1; }
+.wheel-band {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  height: var(--item);
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  pointer-events: none;
+}
 .status { min-height: 1.5em; margin: 12px 0 0; font-weight: 600; }
 
 /* Herzchen */

@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <canvas id="bg" aria-hidden="true"></canvas>
@@ -49,7 +49,7 @@
         <img id="zoom-img" src="bilder/3.jpg" alt="Spass, die Realität" data-placeholder="Bild 3 · Spass">
         <button class="bubble" id="bubble">Klick drauf 👆</button>
       </div>
-      <h2 class="script dude" id="dude">Du Dude</h2>
+      <h2 class="script dude" id="dude">Du Hurensohn</h2>
     </section>
 
     <!-- 4. Die Frage -->
@@ -83,7 +83,12 @@
 
         <div class="times" id="times" hidden>
           <p class="label">Um wie viel Uhr?</p>
-          <div class="time-chips" id="time-chips"></div>
+          <div class="wheel-picker">
+            <div class="wheel" id="wheel-h" aria-label="Stunde"></div>
+            <div class="wheel-colon">:</div>
+            <div class="wheel" id="wheel-m" aria-label="Minute"></div>
+            <div class="wheel-band" aria-hidden="true"></div>
+          </div>
         </div>
 
         <button class="btn btn-wide" id="send" disabled>Absenden</button>
@@ -103,6 +108,6 @@
     <input type="checkbox" name="botcheck" style="display:none">
   </form>
 
-  <script src="script.js?v=5"></script>
+  <script src="script.js?v=6"></script>
 </body>
 </html>
