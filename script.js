@@ -330,6 +330,7 @@
     busyUntil = performance.now() + PAGE_MS;
     hint.classList.toggle("off", page >= list.length - 1);
   };
+  const snapBack = () => { track.style.transform = `translate3d(0, ${offsetOf(page)}px, 0)`; };
   const step = (dir) => { if (performance.now() >= busyUntil) goTo(page + dir); };
   const scrollToEl = (el) => goTo(pages().indexOf(el));
 
@@ -374,7 +375,7 @@
     if (native) return;
     const fast = Math.abs(dy) / (performance.now() - t) > 0.35;
     if (Math.abs(dy) > 70 || (Math.abs(dy) > 25 && fast)) step(dy < 0 ? 1 : -1);
-    else goTo(page);
+    else if (Math.abs(dy) > 6) snapBack(); // nur zurückfedern, ein Tippen auf Knöpfe nicht blockieren
   });
 
   // Mausrad/Trackpad: pro Geste genau ein Seitenwechsel, Nachrollen wird ignoriert
