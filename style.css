@@ -417,3 +417,24 @@ h2.script { font-size: clamp(44px, 13vw, 84px); }
   .reveal { transition: none; opacity: 1; transform: none; }
   .bubble, .scroll-hint { animation: none; }
 }
+
+/* Nein verpufft */
+#btn-nein.poof { animation: poof .45s ease forwards; pointer-events: none; }
+@keyframes poof {
+  40% { scale: 1.25; filter: blur(0); opacity: 1; }
+  100% { scale: 0.2; filter: blur(6px); opacity: 0; }
+}
+
+/* Video als GIF auf der Danke-Seite */
+.gif-frame {
+  width: min(78vw, 340px, 42dvh);
+  border-radius: 22px;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, .85);
+  box-shadow: 0 0 0 6px rgba(255, 143, 199, .25), 0 0 40px rgba(255, 143, 199, .45);
+  transform: rotate(-3deg);
+  animation: gif-in .8s cubic-bezier(.34, 1.56, .64, 1) both, gif-bob 3s ease-in-out .8s infinite;
+}
+.gif-frame video { display: block; width: 100%; height: auto; pointer-events: none; }
+@keyframes gif-in { from { transform: scale(.4) rotate(-12deg); opacity: 0; } }
+@keyframes gif-bob { 50% { transform: rotate(2deg) translateY(-6px); } }
