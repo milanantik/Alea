@@ -249,7 +249,7 @@ h2.script { font-size: clamp(44px, 13vw, 84px); }
   position: relative;
   width: 100%;
   max-width: 420px;
-  height: 260px;
+  height: clamp(190px, 28svh, 260px);
 }
 .playground .btn { position: absolute; left: 0; top: 0; margin: 0; }
 #btn-nein {
