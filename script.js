@@ -15,17 +15,28 @@
   let bunnies = [];
   let nextSpawn = 0;
 
-  // Hasen-Umriss (Frontansicht) aus Ellipsen, Einheit ≈ Hasenhöhe
+  // Hasen-Umriss (Frontansicht) aus Ellipsen, Einheit ≈ Hasenhöhe.
+  // Grosser Kopf, kleiner Körper = süss. "inner" wird nicht weggeschnitten (rosa Innenohren).
   const SHAPES = [
-    { cx: 0, cy: 0.22, rx: 0.30, ry: 0.27, rot: 0, n: 22 },      // Körper
-    { cx: 0, cy: -0.12, rx: 0.19, ry: 0.17, rot: 0, n: 16 },     // Kopf
-    { cx: -0.09, cy: -0.43, rx: 0.055, ry: 0.17, rot: -0.22, n: 12 }, // Ohr links
-    { cx: 0.09, cy: -0.43, rx: 0.055, ry: 0.17, rot: 0.22, n: 12 },   // Ohr rechts
-    { cx: -0.15, cy: 0.47, rx: 0.10, ry: 0.05, rot: 0, n: 8 },   // Fuss links
-    { cx: 0.15, cy: 0.47, rx: 0.10, ry: 0.05, rot: 0, n: 8 },    // Fuss rechts
-    { cx: 0.31, cy: 0.30, rx: 0.06, ry: 0.06, rot: 0, n: 6 },    // Schwänzchen
+    { cx: 0, cy: 0.30, rx: 0.25, ry: 0.21, rot: 0, n: 26 },        // Körper
+    { cx: 0, cy: -0.05, rx: 0.25, ry: 0.21, rot: 0, n: 32 },       // Kopf
+    { cx: -0.10, cy: -0.42, rx: 0.068, ry: 0.2, rot: -0.16, n: 18 }, // Ohr links
+    { cx: 0.13, cy: -0.40, rx: 0.068, ry: 0.2, rot: 0.42, n: 18 },   // Ohr rechts, leicht geknickt
+    { cx: -0.13, cy: 0.49, rx: 0.09, ry: 0.05, rot: 0, n: 10 },    // Fuss links
+    { cx: 0.13, cy: 0.49, rx: 0.09, ry: 0.05, rot: 0, n: 10 },     // Fuss rechts
+    { cx: 0.26, cy: 0.37, rx: 0.07, ry: 0.07, rot: 0, n: 10 },     // Schwänzchen
+    { cx: -0.10, cy: -0.41, rx: 0.03, ry: 0.13, rot: -0.16, n: 10, inner: true },
+    { cx: 0.13, cy: -0.39, rx: 0.03, ry: 0.13, rot: 0.42, n: 10, inner: true },
   ];
-  const DOTS = [[-0.07, -0.14], [0.07, -0.14], [0, -0.07]]; // Augen, Nase
+  const FACE = [
+    { x: -0.09, y: -0.07, kind: "eye" },
+    { x: 0.09, y: -0.07, kind: "eye" },
+    { x: 0, y: 0.0, kind: "nose" },
+    { x: -0.035, y: 0.045, kind: "mouth" },
+    { x: 0, y: 0.03, kind: "mouth" },
+    { x: 0.035, y: 0.045, kind: "mouth" },
+  ];
+  const CHEEKS = [[-0.16, 0.02], [0.16, 0.02]];
 
   const insideShape = (x, y, s) => {
     const c = Math.cos(-s.rot), sn = Math.sin(-s.rot);
@@ -37,24 +48,28 @@
   // Punkte und Kanten nur dort, wo der Umriss aussen liegt
   const BUNNY = (() => {
     const pts = [], edges = [];
-    SHAPES.forEach((s, si) => {
+    const outer = SHAPES.filter((o) => !o.inner);
+    SHAPES.forEach((s) => {
+      const kind = s.inner ? "inner" : "line";
       const ids = [];
       for (let k = 0; k < s.n; k++) {
         const a = (k / s.n) * Math.PI * 2;
         const ex = Math.cos(a) * s.rx, ey = Math.sin(a) * s.ry;
         const x = s.cx + ex * Math.cos(s.rot) - ey * Math.sin(s.rot);
         const y = s.cy + ex * Math.sin(s.rot) + ey * Math.cos(s.rot);
-        const hidden = SHAPES.some((o, oi) => oi !== si && insideShape(x, y, o));
+        const hidden = !s.inner && outer.some((o) => o !== s && insideShape(x, y, o));
         if (hidden) { ids.push(-1); continue; }
         ids.push(pts.length);
-        pts.push({ x, y, dot: false });
+        pts.push({ x, y, kind });
       }
       for (let k = 0; k < ids.length; k++) {
         const a = ids[k], b = ids[(k + 1) % ids.length];
-        if (a >= 0 && b >= 0) edges.push([a, b]);
+        if (a >= 0 && b >= 0) edges.push([a, b, kind]);
       }
     });
-    DOTS.forEach(([x, y]) => pts.push({ x, y, dot: true }));
+    const mouth = [];
+    FACE.forEach((f) => { if (f.kind === "mouth") mouth.push(pts.length); pts.push({ ...f }); });
+    edges.push([mouth[0], mouth[1], "mouth"], [mouth[1], mouth[2], "mouth"]);
     return { pts, edges };
   })();
 
@@ -78,7 +93,7 @@
     y: Math.random() * H,
     vx: (Math.random() - 0.5) * 12,
     vy: (Math.random() - 0.5) * 12,
-    r: 0.6 + Math.random() * 1.2,
+    r: 0.7 + Math.random() * 1.5,
     tw: Math.random() * Math.PI * 2,
     bunny: null,
     tx: 0, ty: 0,
@@ -88,7 +103,7 @@
 
   const spawnBunny = (now, force = false) => {
     if (!force && bunnies.length >= maxBunnies()) return false;
-    const size = Math.min(W, H) * (W < 600 ? 0.42 : 0.3) * (0.8 + Math.random() * 0.35);
+    const size = Math.min(W, H) * (W < 600 ? 0.5 : 0.32) * (0.8 + Math.random() * 0.35);
     let cx, cy, tries = 0;
     do {
       cx = size * 0.45 + Math.random() * (W - size * 0.9);
@@ -139,7 +154,12 @@
       p.x += p.vx * dt; p.y += p.vy * dt;
       if (p.x < -10) p.x = W + 10; else if (p.x > W + 10) p.x = -10;
       if (p.y < -10) p.y = H + 10; else if (p.y > H + 10) p.y = -10;
-      ctx.fillStyle = `rgba(255,255,255,${0.35 + Math.sin(p.tw) * 0.2})`;
+      const a = 0.5 + Math.sin(p.tw) * 0.3;
+      if (p.r > 1.6) {
+        ctx.fillStyle = `rgba(255,210,235,${a * 0.18})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = `rgba(255,255,255,${a})`;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
     }
 
@@ -175,19 +195,56 @@
         }
       });
 
-      ctx.lineWidth = 1.2;
-      ctx.strokeStyle = `rgba(255,190,225,${0.75 * lineA})`;
-      ctx.beginPath();
-      for (const [a, c] of BUNNY.edges) {
-        const pa = b.members[a], pc = b.members[c];
-        ctx.moveTo(pa.x, pa.y); ctx.lineTo(pc.x, pc.y);
-      }
-      ctx.stroke();
+      const k = b.size / 160; // Strichstärken wachsen mit der Hasengrösse
+      const LINE = { line: [255, 205, 232], inner: [255, 140, 190], mouth: [255, 235, 245] };
 
+      // Bäckchen: weicher rosa Schimmer
+      if (lineA > 0) {
+        CHEEKS.forEach(([x, y]) => {
+          const cx = b.cx + x * b.size * b.flip, cy = b.cy + y * b.size + hop, r = b.size * 0.06;
+          const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+          g.addColorStop(0, `rgba(255,120,180,${0.55 * lineA})`);
+          g.addColorStop(1, "rgba(255,120,180,0)");
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        });
+      }
+
+      // Linien: zuerst breiter Leuchtschein, dann feine Linie darüber
+      ctx.lineCap = "round";
+      for (const [width, alpha] of [[5 * k, 0.16], [1.7 * k, 0.9]]) {
+        ctx.lineWidth = Math.max(1, width);
+        for (const kind of ["line", "inner", "mouth"]) {
+          const [r, g, bl] = LINE[kind];
+          ctx.strokeStyle = `rgba(${r},${g},${bl},${alpha * lineA})`;
+          ctx.beginPath();
+          for (const [a, c, kd] of BUNNY.edges) {
+            if (kd !== kind) continue;
+            const pa = b.members[a], pc = b.members[c];
+            ctx.moveTo(pa.x, pa.y); ctx.lineTo(pc.x, pc.y);
+          }
+          ctx.stroke();
+        }
+      }
+
+      // Punkte mit Lichthof; Augen gross mit Glanzpunkt, Nase rosa
+      const vis = 0.55 + 0.45 * lineA;
       b.members.forEach((p, i) => {
-        const dot = BUNNY.pts[i].dot;
-        const r = dot ? 2.6 : 1.5;
-        ctx.fillStyle = dot ? `rgba(255,255,255,${0.4 + 0.6 * lineA})` : `rgba(255,220,240,${0.55 + 0.45 * lineA})`;
+        const kind = BUNNY.pts[i].kind;
+        if (kind === "eye") {
+          ctx.fillStyle = `rgba(255,255,255,${vis})`;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 4.2 * k + 1, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = `rgba(60,20,80,${lineA})`;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 2.8 * k + 0.6, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = `rgba(255,255,255,${lineA})`;
+          ctx.beginPath(); ctx.arc(p.x + 1.1 * k, p.y - 1.1 * k, 1.1 * k + 0.3, 0, Math.PI * 2); ctx.fill();
+          return;
+        }
+        const pink = kind === "nose" || kind === "inner";
+        const r = (kind === "nose" ? 3 : kind === "mouth" ? 1.2 : 1.9) * k + 0.4;
+        ctx.fillStyle = pink ? `rgba(255,120,180,${vis * 0.25})` : `rgba(255,220,240,${vis * 0.22})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, r * 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = pink ? `rgba(255,150,200,${vis})` : `rgba(255,255,255,${vis})`;
         ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
       });
       return true;
