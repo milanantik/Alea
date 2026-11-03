@@ -682,7 +682,6 @@
       if (!data.success) throw new Error(data.message);
       document.getElementById("danke-text").textContent = `Bis am ${dayLabel(pickedDay)} um ${pickedTime()} ❤️`;
       const danke = unlock("danke");
-      document.getElementById("danke-video").play?.().catch(() => {});
       scrollToEl(danke);
       rainHearts(80);
     } catch {
